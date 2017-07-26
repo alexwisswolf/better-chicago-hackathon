@@ -9,7 +9,7 @@ response = requests.get("https://data.cityofchicago.org/resource/c4ep-ee5m.json"
 
 crime_data = json.loads(response.text)
 for crime in crime_data:
-    ds_crime = datastore.Entity(key=ds_client.key('crime', crime['case_number']))
+    ds_crime = datastore.Entity(ds_client.key('crime', crime['case_number']))
     for key, val in crime.iteritems():
         if type(val) is dict:
             ds_crime[key] = datastore.Entity(key=ds_client.key(key))
