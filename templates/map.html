@@ -8,23 +8,51 @@
         href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css"
     />
 </head>
+<style>
+
+@import url(//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.5/leaflet.css);
+/*@import url(../style.css?aea6f0a);*/
+a:not(:hover) {
+    text-decoration: none;
+}
+
+#map {
+    width: 960px;
+    height: 500px;
+}
+
+svg {
+     position: relative;
+}
+
+path {
+    fill: transparent;
+    fill-opacity: .2;
+    stroke: #000;
+    stroke-width: 1.5px;
+}
+
+path:hover {
+    fill: brown;
+    fill-opacity: .7;
+}
+
+svg:hover {
+    fill: brown;
+    fill-opacity: .7;
+}
+
+</style>
+
 <body>
     <div id="map" style="width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; margin: -5 -5 0 0"></div>
 
-    <script
-       src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js">
-    </script>
-    
-    <script
-       src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js">
-    </script>
-
-    <script
-        src="https://d3js.org/d3.v4.min.js">
-    </script>
-
+    <script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js"></script>
+    <script src="https://leaflet.github.io/Leaflet.heat/dist/leaflet-heat.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>'
     <script>
-        var map = L.map('map').setView([41.8781,-87.6298], 12);
+        var map = L.map('map').setView([41.8781,-87.6298], 12).setMinZoom(11);
         mapLink = 
             '<a href="https://openstreetmap.org">OpenStreetMap</a>';
         L.tileLayer(
@@ -32,29 +60,105 @@
             attribution: '&copy; ' + mapLink + ' Contributors',
             maxZoom: 18,
         }).addTo(map);
-        
+
+        var svg = d3.select(map.getPanes().overlayPane).append("svg"),
+            g = svg .append("g")
+                    .attr("class", "leaflet-zoom-hide");
+
+        d3.json("/assets/cps_boundaries.json", function(boundaries) {
+
+            var transform = d3.geoTransform({point: projectPoint}),
+                path = d3.geoPath().projection(transform);
+
+            var feature = g.selectAll("path")
+                .data(boundaries.features)
+                .enter().append("path");
+            
+            // Set the map to reset the boundaries whenever it zooms
+            map.on("zoom", reset);
+            reset();
+            
+            // Reposition the SVG to cover the features.
+            function reset() {
+                var bounds = path.bounds(boundaries),
+                    topLeft = bounds[0],
+                    bottomRight = bounds[1];
+
+                svg .attr("width", bottomRight[0] - topLeft[0])
+                    .attr("height", bottomRight[1] - topLeft[1])
+                    .style("left", topLeft[0] + "px")
+                    .style("top", topLeft[1] + "px");
+
+                g   .attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
+
+                feature.attr("d", path);
+            }
+
+            // Use Leaflet to implement a D3 geometric transformation.
+            function projectPoint(x, y) {
+                var point = map.latLngToLayerPoint(new L.LatLng(y, x));
+                this.stream.point(point.x, point.y);
+            }
+        });  
 
         d3.json("/_crimes", function(data) {
-            var test_data = [
-                {"lat": 41.749135591, "lng": -87.685268108, "value": 10},
-                {"lat": 41.748135591, "lng": -87.685268108, "value": 20},
-                {"lat": 41.8781, "lng": -87.6298, "value": 30}
-            ]
-            var test_data2 = [
-                [41.749135591, -87.685268108, 1],
-                [41.748135591, -87.685268108, 2],
-                [41.8781, -87.6298, 1]
-            ]
-            console.log(test_data)
+            
+            // Adding the heatmap
             var heat = L.heatLayer(data,{
                 radius: 60,
                 blur: 15, 
                 maxZoom: 17
             }).addTo(map);
+            
+            // It looks better if the heatmap goes away when we zoom and comes back after
+            map.on("zoomstart", remove_heat);
+            map.on("zoomend", add_heat);
+
+            function remove_heat() {
+                map.removeLayer(heat)
+            }
+
+            function add_heat() {
+                map.addLayer(heat)
+            }
         });
         
-        
 
+        // var runLayer = omnivore.kml('/assets/cps_boundaries.kml')
+        //     .on('ready', function() {
+        //         map.fitBounds(runLayer.getBounds());
+        //     })
+        //     .addTo(map);
+        
+        // d3.json("/assets/circles.json", function(collection) {
+        //     /* Add a LatLng object to each item in the dataset */
+        //     collection.objects.forEach(function(d) {
+        //         d.LatLng = new L.LatLng(d.circle.coordinates[0],
+        //                                 d.circle.coordinates[1])
+        //     })
+            
+        //     var feature = g.selectAll("circle")
+        //         .data(collection.objects)
+        //         .enter().append("circle")
+        //         .style("stroke", "black")  
+        //         .style("opacity", .6) 
+        //         .style("fill", "red")
+        //         .attr("r", 20);  
+            
+        //     map.on("viewreset", update);
+        //     update();
+
+        //     function update() {
+        //         console.log("test")
+        //         feature.attr("transform", 
+        //         function(d) { 
+        //             return "translate("+ 
+        //                 map.latLngToLayerPoint(d.LatLng).x +","+ 
+        //                 map.latLngToLayerPoint(d.LatLng).y +")";
+        //             }
+        //         )
+        //     }
+        // });			 
     
     </script>
 </body>
