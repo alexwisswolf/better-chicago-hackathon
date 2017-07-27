@@ -13,3 +13,4 @@ deploy:
 before_install:
 - openssl aes-256-cbc -K $encrypted_4f26493f2f09_key -iv $encrypted_4f26493f2f09_iv
   -in gcp.json.enc -out gcp.json -d
+
