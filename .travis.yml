@@ -1,7 +1,7 @@
 language: python
 python:
 - '2.7'
-install: pip install -r webapp/requirements.txt -t lib
+install: pip install -r requirements.txt -t lib
 script: echo "Tested!"
 deploy:
   provider: gae
@@ -9,7 +9,7 @@ deploy:
   keyfile: gcp.json
   project: better-chicago-hackathon
   default: true
-  config: webapp/app.yml
+  config: app.yml
 before_install:
 - openssl aes-256-cbc -K $encrypted_4f26493f2f09_key -iv $encrypted_4f26493f2f09_iv
   -in gcp.json.enc -out gcp.json -d
