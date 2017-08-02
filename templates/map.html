@@ -7,44 +7,58 @@
         rel="stylesheet" 
         href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css"
     />
+    <style>
+
+    /* @import url(//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.5/leaflet.css); */
+    /*@import url(../style.css?aea6f0a);*/
+    /* a:not(:hover) {
+        text-decoration: none;
+    } */
+    div.tooltip {
+        position: absolute;	
+        text-align: center;	
+        width: 60px;	
+        height: 28px;		
+        padding: 2px;	
+        font: 12px sans-serif;	
+        background: lightsteelblue;	
+        border: 0px;					
+        border-radius: 8px;
+        z-index: 1050;
+        /*  pointer-events: none;	This line needs to be removed */
+    }
+
+    svg {
+        position: relative;
+    }
+
+    .leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-image-layer, .leaflet-pane > svg path, .leaflet-tile-container {
+        pointer-events: all
+    }
+
+    svg path * {
+        pointer-events: all;
+    }
+
+    path {
+        fill: black;
+        fill-opacity: .05;
+        stroke: #000;
+        stroke-width: 1.5px;
+        /* pointer-events: all; */
+    }
+
+    path:hover {
+        fill: brown;
+        fill-opacity: .9;
+    }
+
+
+    </style>
 </head>
-<style>
-
-@import url(//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.5/leaflet.css);
-/*@import url(../style.css?aea6f0a);*/
-a:not(:hover) {
-    text-decoration: none;
-}
-
-#map {
-    width: 960px;
-    height: 500px;
-}
-
-svg {
-     position: relative;
-}
-
-path {
-    fill: transparent;
-    fill-opacity: .2;
-    stroke: #000;
-    stroke-width: 1.5px;
-}
-
-path:hover {
-    fill: brown;
-    fill-opacity: .7;
-}
-
-svg:hover {
-    fill: brown;
-    fill-opacity: .7;
-}
-
-</style>
 
 <body>
+    
     <div id="map" style="width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; margin: -5 -5 0 0"></div>
 
     <script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js"></script>
@@ -52,7 +66,14 @@ svg:hover {
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>'
     <script>
-        var map = L.map('map').setView([41.8781,-87.6298], 12).setMinZoom(11);
+        // Create tooltip div
+        var div = d3.select("body")
+            .append("div")              // declare the tooltip div 
+            .attr("class", "tooltip")   // apply the 'tooltip' class
+            .style("opacity", 0);       // set the opacity to nil
+            
+        var map = L.map('map').setView([41.8781,-87.6298], 11).setMinZoom(11);
+        map.createPane("boundaries")
         mapLink = 
             '<a href="https://openstreetmap.org">OpenStreetMap</a>';
         L.tileLayer(
@@ -60,19 +81,39 @@ svg:hover {
             attribution: '&copy; ' + mapLink + ' Contributors',
             maxZoom: 18,
         }).addTo(map);
-
-        var svg = d3.select(map.getPanes().overlayPane).append("svg"),
+        map.getPane("boundaries").style.zIndex = 1000;
+        var svg = d3.select(map.getPane("boundaries")).append("svg").attr("pointer-events","visible"),
             g = svg .append("g")
-                    .attr("class", "leaflet-zoom-hide");
+                    .attr("class", "leaflet-zoom-hide")
+                    .attr("pointer-events","visible");
 
         d3.json("/assets/cps_boundaries.json", function(boundaries) {
 
             var transform = d3.geoTransform({point: projectPoint}),
                 path = d3.geoPath().projection(transform);
-
+            
             var feature = g.selectAll("path")
                 .data(boundaries.features)
-                .enter().append("path");
+                .enter().append("path")
+                .attr("pointer-events", "all")
+                .on("mouseover", function() {
+                    console.log("test")
+                })
+                .on("click", function(d) {
+                    console.log("click")
+                    div.transition()
+                        .duration(500)	
+                        .style("opacity", 0);
+                    div.transition()
+                        .duration(200)	
+                        .style("opacity", .9);	
+                    div	.html(d3.select(this).attr("name") + "test")	 
+                        .style("left", path.centroid(d)[0] + 50 + "px")			 
+                        .style("top", path.centroid(d)[1] + "px");
+                    d3.select(this)
+                            .attr("fill-opacity", .9)
+                            .attr("fill", "blue")
+                });
             
             // Set the map to reset the boundaries whenever it zooms
             map.on("zoom", reset);
@@ -87,9 +128,11 @@ svg:hover {
                 svg .attr("width", bottomRight[0] - topLeft[0])
                     .attr("height", bottomRight[1] - topLeft[1])
                     .style("left", topLeft[0] + "px")
-                    .style("top", topLeft[1] + "px");
+                    .style("top", topLeft[1] + "px")
+                    .attr("pointer-events","visible");
 
-                g   .attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")");
+                g   .attr("transform", "translate(" + -topLeft[0] + "," + -topLeft[1] + ")")
+                    .attr("pointer-events","visible");
 
                 feature.attr("d", path);
             }
