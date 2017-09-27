@@ -30,6 +30,11 @@ def line():
 def boundaries_json():
     return send_file("assets/cps_boundaries.json")
 
+# Adding new source TEST
+@app.route("/assets/test.json")
+def test_json():
+    return send_file("assets/test.json")
+
 @app.route("/assets/circles.json")
 def circles():
     return send_file("assets/circles.json")
